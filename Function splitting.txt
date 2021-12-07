@@ -1,0 +1,35 @@
+
+PROVISIONAL
+
+New Methods We Could Add/Swap:
+Trees and Random Forests (has complicated minimization problems?)
+Bagging Precedure (bootstrapping sampling and taking average of learned functions)
+AdaBoost
+Forward Additive Stagewise Modeling
+Gradient Boosting
+Neural Network (regression and classification; training on few images?)
+
+Raul:
+Done - Kernel Ridge Regression
+Done - Logistic Regression with Iterative Algorithm (Multinomial too?)
+Done - Proximal gradient descent with l1-penalty
+Done - Elastic net (see homework for connection to prox. gradient descent)
+Optimal Separating Hyperplane
+Support Vector Machine (in constraint form or with penalty?)
+Kernel SVM
+Neural Network?
+Bagging procedure?
+
+Jonathan:
+Gradient Descent
+Newton's Method
+Naive Bayes Classifier
+Linear Discriminant Analysis
+Nonnegative Matrix Factorization
+Kernel PCA
+Multidimensional Scaling
+tSNE
+UMAP
+K-Means Clustering
+PCA + K-Means
+Hierarchical Clustering (how to create dendrogram?)
