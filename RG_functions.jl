@@ -1,5 +1,7 @@
 using Plots
 using LinearAlgebra
+using JuMP
+using Gurobi
 import Statistics
 import DelimitedFiles
 
@@ -248,6 +250,41 @@ MSE = Statistics.mean((y - y_pred).^2)
 Support Vector Machines
 Description.
 """
+function SVM(X,y,C)
+    n,p = size(X)
+    model = JuMP.Model(JuMP.optimizer_with_attributes(Gurobi.Optimizer, "MIPGap" => .01, "TimeLimit" => 180))
+    JuMP.@variable(model, β_0)
+    JuMP.@variable(model, β[1:p])
+    JuMP.@variable(model, ξ[1:n] >= 0)
+    JuMP.@objective(model, Min, β'*β)
+    for i = 1:n
+        JuMP.@constraint(model, y[i]*(X[i,:]'*β + β_0) >= 1 - ξ[i])
+    end
+    JuMP.@constraint(model, sum(ξ[i] for i = 1:n) <= C)
+
+    JuMP.optimize!(model)
+
+    return value(β_0), value.(β), value.(ξ)
+end
+
+# Load data
+data = DelimitedFiles.readdlm("poverty.txt", '\t')
+X = Matrix(Float64.(data[2:end,2:end]))
+n,p = size(X)
+# X = hcat(ones(n), X)
+y = rand((-1,1), n)
+C = 40
+# Solve
+(β_0, β, ξ) = SVM(X,y,C)
+# Report error
+SVM_classifier(x,β_0,β) = sign(x'*β + β_0)
+misclass = 0
+for i = 1:n
+    if SVM_classifier(X[i,:], β_0, β) != y[i]
+        misclass += 1
+    end
+end
+println("$misclass out of $n training observations misclassified.")
 
 
 """
@@ -255,3 +292,19 @@ Description.
 Kernel Support Vector Machines
 Description.
 """
+function kernel_SVM(X,y,C)
+    n,p = size(X)
+    model = JuMP.Model(JuMP.optimizer_with_attributes(Gurobi.Optimizer, "MIPGap" => .01, "TimeLimit" => 180))
+    JuMP.@variable(model, β_0)
+    JuMP.@variable(model, β[1:p])
+    JuMP.@variable(model, ξ[1:n] >= 0)
+    JuMP.@objective(model, Min, β'*β)
+    for i = 1:n
+        JuMP.@constraint(model, y[i]*(X[i,:]'*β + β_0) >= 1 - ξ[i])
+    end
+    JuMP.@constraint(model, sum(ξ[i] for i = 1:n) <= C)
+
+    JuMP.optimize!(model)
+
+    return value(β_0), value.(β), value.(ξ)
+end
