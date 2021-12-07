@@ -32,9 +32,9 @@ function solve_LR_coef(X,y,b; LIMIT = 500)
         global counter += 1
     end
 
-    println("Number of iterations: $counter")
+    println("Number of iterations: $counter.")
     if counter == 500
-        println("Max iterations")
+        println("Max iterations reached.")
     end
 
     return b
@@ -123,9 +123,124 @@ println("Mean square error with polynomial kernel: $(Statistics.mean( (y_preds_p
 
 """
     prox_grad_desc()
-Proximal Gradient Descent for Lasso Problem.
+Proximal Gradient Descent for Least Squares regression with L1-penalty.
 Description.
 """
+function prox_grad_desc(X,y,β,λ; LIMIT=500)
+    # Soft-thresholding function
+    S(y,l) = begin
+        if abs(y) <= l
+            return 0
+        elseif y > l
+            return y - l
+        else
+            return y + l
+        end
+    end
+
+    # Solving min 1/2*norm(Y-Xβ,2)^2 + λ*norm(β,1)
+    h = 1 / max(eigvals(X'X)...)   # learning rate
+    ∇L(β) = -X'*(y-X*β)
+    tol = 1.e-6
+    counter = 0
+    while norm(∇L(β)) > tol && counter < LIMIT
+        β .= S.(β - h*∇L(β), λ*h)
+        counter += 1
+        if counter % 10 == 0
+            println("Iteration $counter, gradient norm $(norm(∇L(β)))")
+        end
+    end
+    
+    println("Number of iterations: $counter.")
+    if counter == 500
+        println("Max iterations reached.")
+    end
+
+    return β
+end
+
+# Load data
+data = DelimitedFiles.readdlm("poverty.txt", '\t')
+X = Float64.(data[2:end,2:end-1])
+y = Float64.(data[2:end,end])
+n,p = size(X)
+# Center y and estimate β_0
+y_centered = y .- Statistics.mean(y)
+β_0 = Statistics.mean(y)
+# Create matrix of centered X columns
+X_centered = zeros(n,p)
+for j in 1:p
+    X_centered[:,j] = X[:,j] .- Statistics.mean(X[:,j])
+end
+# Initialize β
+β_init = ones(size(X_centered,2))
+λ = 100
+
+β = prox_grad_desc(X_centered, y_centered, β_init, λ)
+
+y_pred = β_0 .+ X_centered * β
+MSE = Statistics.mean((y - y_pred).^2)
+
+
+"""
+    elastic_net()
+Elastic Net.
+Description.
+"""
+function elastic_net(X,y,β,λ,α; LIMIT=500)
+    S(y,l) = begin
+        if abs(y) <= l
+            return 0
+        elseif y > l
+            return y - l
+        else
+            return y + l
+        end
+    end
+
+    # Solving min 1/2*norm(Y-Xβ,2)^2 + λ*(α*norm(β,1) + (1-α)*norm(β,2)^2)
+    h = 1 / max(eigvals(X'X)...)   # learning rate
+    ∇L(β) = -X'*(y-X*β) + 2λ*(1-α)*β
+    tol = 1.e-6
+    counter = 0
+    while norm(∇L(β)) > tol && counter < LIMIT
+        β .= S.(β - h*∇L(β), λ*h*α)
+        counter += 1
+        if counter % 10 == 0
+            println("Iteration $counter, gradient norm $(norm(∇L(β)))")
+        end
+    end
+    
+    println("Number of iterations: $counter.")
+    if counter == 500
+        println("Max iterations reached.")
+    end
+
+    return β
+end
+
+# Load data
+data = DelimitedFiles.readdlm("poverty.txt", '\t')
+X = Float64.(data[2:end,2:end-1])
+y = Float64.(data[2:end,end])
+n,p = size(X)
+# Center y and estimate β_0
+y_centered = y .- Statistics.mean(y)
+β_0 = Statistics.mean(y)
+# Create matrix of centered X columns
+X_centered = zeros(n,p)
+for j in 1:p
+    X_centered[:,j] = X[:,j] .- Statistics.mean(X[:,j])
+end
+# Initialize β
+β_init = ones(size(X_centered,2))
+λ = 100
+α = 0.1
+
+β = elastic_net(X_centered, y_centered, β_init, λ, α)
+
+y_pred = β_0 .+ X_centered * β
+MSE = Statistics.mean((y - y_pred).^2)
 
 
 """
