@@ -292,19 +292,66 @@ println("$misclass out of $n training observations misclassified.")
 Kernel Support Vector Machines
 Description.
 """
-function kernel_SVM(X,y,C)
-    n,p = size(X)
-    model = JuMP.Model(JuMP.optimizer_with_attributes(Gurobi.Optimizer, "MIPGap" => .01, "TimeLimit" => 180))
-    JuMP.@variable(model, β_0)
-    JuMP.@variable(model, β[1:p])
-    JuMP.@variable(model, ξ[1:n] >= 0)
-    JuMP.@objective(model, Min, β'*β)
+function kernel_SVM(X,y,C,K)
+    n = size(X,1)
+    k = zeros(n,n)
     for i = 1:n
-        JuMP.@constraint(model, y[i]*(X[i,:]'*β + β_0) >= 1 - ξ[i])
+        for j = i:n
+            k[i,j] = K(X[i,:],X[j,:])
+            k[j,i] = k[i,j]
+            # println("$(k[i,j])")
+        end
     end
-    JuMP.@constraint(model, sum(ξ[i] for i = 1:n) <= C)
+
+    model = JuMP.Model(JuMP.optimizer_with_attributes(Gurobi.Optimizer, "NonConvex" => 2, "MIPGap" => .01, "TimeLimit" => 180))
+    JuMP.@variable(model, 0 <= α[1:n] <= C)
+    JuMP.@objective(model,
+                    Max,
+                    sum(α[i] for i = 1:n) - 1/2 * sum( sum( α[i]*α[j]*y[i]*y[j]*k[i,j] for j = 1:n ) for i = 1:n)
+                    )
+    JuMP.@constraint(model, sum(α[i]*y[i] for i = 1:n) == 0)
 
     JuMP.optimize!(model)
 
-    return value(β_0), value.(β), value.(ξ)
+    return value.(α)
 end
+
+# Load data
+data = DelimitedFiles.readdlm("poverty.txt", '\t')
+X = Matrix(Float64.(data[2:end,2:end]))
+n,p = size(X)
+# X = hcat(ones(n), X)
+y = rand((-1,1), n)
+
+# Radial Basis Function
+s = 100
+K_rbf(x,z) = exp(-(norm(x-z)^2) / (2*(s^2)))
+# Polynomial
+c = 0; d = 1
+K_poly(x,z) = (c + dot(x,z))^d
+
+C = 10
+α_rbf = kernel_SVM(X,y,C,K_rbf)
+α_poly = kernel_SVM(X,y,C,K_poly)
+
+# find index of max α component, let that be k 
+k_rbf = argmax(α_rbf)
+k_poly = argmax(α_poly)
+
+b_rbf = y[k_rbf] - sum( α_rbf[i]*y[i]*K_rbf(X[k_rbf,:],X[i,:]) for i = 1:n)
+b_rbf = y[k_poly] - sum( α_poly[i]*y[i]*K_poly(X[k_poly,:],X[i,:]) for i = 1:n)
+
+kernel_SVM_classifier(x,K,X,α,b) = sign(sum( α[i]*y[i]*K(x,X[i,:]) for i = 1:size(X,1)) + b)
+
+misclass_rbf = 0
+misclass_poly = 0
+for i = 1:n
+    if kernel_SVM_classifier(X[i,:], K_rbf,X, α_rbf, b_rbf) != y[i]
+        misclass_rbf += 1
+    end
+    if kernel_SVM_classifier(X[i,:], K_poly,X, α_poly, b_poly) != y[i]
+        misclass_poly += 1
+    end
+end
+println("RBF kernel: $misclass_rbf out of $n training observations misclassified.")
+println("Polynomail kernel: $misclass_poly out of $n training observations misclassified.")
