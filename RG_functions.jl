@@ -4,6 +4,7 @@ using JuMP
 using Gurobi
 import Statistics
 import DelimitedFiles
+import Random
 
 """
     solve_LR_coef(X,y,b; LIMIT)
@@ -353,5 +354,129 @@ for i = 1:n
         misclass_poly += 1
     end
 end
+println("RBF kernel: $misclass_rbf out of $n training observations misclassified.")
+println("Polynomail kernel: $misclass_poly out of $n training observations misclassified.")
+
+
+# Create custom data for binary classification with: RBF, linear, quadratic
+
+# RBF Boundary Data
+Random.seed!(1)
+
+r1 = sqrt.(rand(100))
+t1 = 2pi*rand(100)
+data1 = hcat(r1.*cos.(t1), r1.*sin.(t1))
+scatter(data1[:,1], data1[:,2], color="blue")
+
+r2 = sqrt.(3*rand(100) .+ 1)
+t2 = 2pi*rand(100)
+data2 = hcat(r2.*cos.(t2), r2.*sin.(t2))
+scatter!(data2[:,1], data2[:,2], color="red")
+
+data_rbf = vcat(hcat(data1,ones(100)), hcat(data2,-ones(100)))
+
+X = data_rbf[:,1:2]
+y = data_rbf[:,3]
+n,p = size(X)
+
+# Linear Boundary Data
+X = rand(500,2)
+y = zeros(500)
+pos_ind = []
+neg_ind = []
+for i=1:size(data1,1)
+    if X[i,2] > 1.5*X[i,1] - .25
+        y[i] = 1
+        push!(pos_ind,i)
+    else
+        y[i] = -1
+        push!(neg_ind,i)
+    end
+end
+
+class_pos = X[pos_ind,:]
+class_neg = X[neg_ind,:]
+
+scatter(class_pos[:,1], class_pos[:,2], color="blue", label="Class 1")
+scatter!(class_neg[:,1], class_neg[:,2], color="red", label="Class 2")
+
+x = LinRange(0,1,100)
+f(x) = 1.5*x - .25
+plot!(x, f.(x),xlims=(0,1),ylims=(0,1))
+
+x = LinRange(1/5,4/5,10)
+x_noise_class1 = f.(x) + 1/5 * (rand(10) .- 0.5)
+x_noise_class2 = f.(x) + 1/5 * (rand(10) .- 0.5)
+scatter!(x, x_noise_class1, color="blue")
+scatter!(x, x_noise_class2, color="red")
+XX = vcat(X,hcat(x,x_noise_class1), hcat(x,x_noise_class2))
+yy = vcat(y,ones(10),-ones(10))
+
+# Quadratic Boundary Data
+X = rand(500,2)
+y = zeros(500)
+pos_ind = []
+neg_ind = []
+for i=1:size(data1,1)
+    if X[i,2] > -(X[i,1]+.5)*(X[i,1]-1)
+        y[i] = 1
+        push!(pos_ind,i)
+    else
+        y[i] = -1
+        push!(neg_ind,i)
+    end
+end
+
+class_pos = X[pos_ind,:]
+class_neg = X[neg_ind,:]
+
+scatter(class_pos[:,1], class_pos[:,2], color="blue", label="Class 1")
+scatter!(class_neg[:,1], class_neg[:,2], color="red", label="Class 2")
+
+x = LinRange(0,1,100)
+f(x) = -(x+0.5)*(x-1)
+plot!(x, f.(x),xlims=(0,1),ylims=(0,1))
+
+x = LinRange(0,1,10)
+x_noise_class1 = f.(x) + 1/5 * (rand(10) .- 0.5)
+x_noise_class2 = f.(x) + 1/5 * (rand(10) .- 0.5)
+scatter!(x, x_noise_class1, color="blue")
+scatter!(x, x_noise_class2, color="red")
+XX = vcat(X,hcat(x,x_noise_class1), hcat(x,x_noise_class2))
+yy = vcat(y,ones(10),-ones(10))
+
+######################### TEST SYNTHETIC DATA ############################
+
+# Radial Basis Function
+s = 1/10
+K_rbf(x,z) = exp(-(norm(x-z)^2) / (2*(s^2)))
+# Polynomial
+c = 0; d = 2
+K_poly(x,z) = (c + dot(x,z))^d
+
+C = 5
+α_rbf = kernel_SVM(X,y,C,K_rbf)
+α_poly = kernel_SVM(X,y,C,K_poly)
+
+# find index of max α component, let that be k 
+k_rbf = argmax(α_rbf)
+k_poly = argmax(α_poly)
+
+b_rbf = y[k_rbf] - sum( α_rbf[i]*y[i]*K_rbf(X[k_rbf,:],X[i,:]) for i = 1:n)
+b_rbf = y[k_poly] - sum( α_poly[i]*y[i]*K_poly(X[k_poly,:],X[i,:]) for i = 1:n)
+
+kernel_SVM_classifier(x,K,X,α,b) = sign(sum( α[i]*y[i]*K(x,X[i,:]) for i = 1:size(X,1)) + b)
+
+misclass_rbf = 0
+misclass_poly = 0
+for i = 1:n
+    if kernel_SVM_classifier(X[i,:], K_rbf,X, α_rbf, b_rbf) != y[i]
+        misclass_rbf += 1
+    end
+    if kernel_SVM_classifier(X[i,:], K_poly,X, α_poly, b_poly) != y[i]
+        misclass_poly += 1
+    end
+end
+
 println("RBF kernel: $misclass_rbf out of $n training observations misclassified.")
 println("Polynomail kernel: $misclass_poly out of $n training observations misclassified.")

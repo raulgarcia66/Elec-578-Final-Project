@@ -14,9 +14,8 @@ Done - Kernel Ridge Regression
 Done - Logistic Regression with Iterative Algorithm (Multinomial too?)
 Done - Proximal gradient descent with l1-penalty
 Done - Elastic net (see homework for connection to prox. gradient descent)
-Optimal Separating Hyperplane
-Support Vector Machine (in constraint form or with penalty?)
-Kernel SVM
+Done - Support Vector Machine (in constraint form or with penalty?)
+Done - Kernel SVM
 Neural Network?
 Bagging procedure?
 
