@@ -4,9 +4,7 @@ PROVISIONAL
 New Methods We Could Add/Swap:
 Trees and Random Forests (has complicated minimization problems?)
 Bagging Precedure (bootstrapping sampling and taking average of learned functions)
-AdaBoost
 Forward Additive Stagewise Modeling
-Gradient Boosting
 Neural Network (regression and classification; training on few images?)
 
 Raul:
@@ -20,11 +18,11 @@ Neural Network?
 Bagging procedure?
 
 Jonathan:
-Gradient Descent
-Newton's Method
+Done - Gradient Descent
+Done - Newton's Method
+Done - Nonnegative Matrix Factorization
 Naive Bayes Classifier
 Linear Discriminant Analysis
-Nonnegative Matrix Factorization
 Kernel PCA
 Multidimensional Scaling
 tSNE
@@ -32,3 +30,5 @@ UMAP
 K-Means Clustering
 PCA + K-Means
 Hierarchical Clustering (how to create dendrogram?)
+Adaboost
+Gradient Boosting
