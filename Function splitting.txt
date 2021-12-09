@@ -3,19 +3,20 @@ PROVISIONAL
 
 New Methods We Could Add/Swap:
 Trees and Random Forests (has complicated minimization problems?)
-Bagging Precedure (bootstrapping sampling and taking average of learned functions)
-Forward Additive Stagewise Modeling
-Neural Network (regression and classification; training on few images?)
+Forward Additive Stagewise Modeling?
 
 Raul:
 Done - Kernel Ridge Regression
 Done - Logistic Regression with Iterative Algorithm (Multinomial too?)
 Done - Proximal gradient descent with l1-penalty
 Done - Elastic net (see homework for connection to prox. gradient descent)
-Done - Support Vector Machine (in constraint form or with penalty?)
+Done - Support Vector Machine (in constraint form)
 Done - Kernel SVM
-Neural Network?
-Bagging procedure?
+Bagging procedure (procedure, not function)
+Neural network? (regression and classification; training on MNIST)
+Others:
+Done - Bootstrapping function
+Centering data function?
 
 Jonathan:
 Done - Gradient Descent

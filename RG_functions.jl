@@ -54,6 +54,10 @@ b = zeros(p+1)
 b = solve_LR_coef(X,y,b)
 # Report error
 prob(x, β) = 1 / (1 + exp(-(dot(x,β) )))
+
+# Prediction function
+
+
 misclass = 0
 for i = 1:n
     if prob(X[i,:],b) >= 0.5 && y[i] == 0
@@ -74,8 +78,9 @@ function kernel_ridge(X,y,λ,K)
     n = length(y)
     k = zeros(n,n)
     for i = 1:n
-        for j = 1:n
+        for j = i:n
             k[i,j] = K(X[i,:],X[j,:])
+            k[j,i] = k[i,j]
             # println("$(k[i,j])")
         end
     end
@@ -111,6 +116,7 @@ K_poly(x,z) = (c + dot(x,z))^d
 α_rbf = kernel_ridge(X,y,λ,K_rbf)
 α_poly = kernel_ridge(X,y,λ,K_poly)
 
+# Prediction function
 pred_kernel_ridge(x,K,X,α) = sum( K(x,X[i,:]) * α[i] for i = 1:size(X,1))
 
 # Mean Squared Error
@@ -181,12 +187,15 @@ end
 
 β = prox_grad_desc(X_centered, y_centered, β_init, λ)
 
+# Prediction function
+
+
 y_pred = β_0 .+ X_centered * β
 MSE = Statistics.mean((y - y_pred).^2)
 
 
 """
-    elastic_net()
+    elastic_net(X,y,β,λ,α; LIMIT)
 Elastic Net.
 Description.
 """
@@ -242,12 +251,15 @@ end
 
 β = elastic_net(X_centered, y_centered, β_init, λ, α)
 
+# Prediction function
+
+
 y_pred = β_0 .+ X_centered * β
 MSE = Statistics.mean((y - y_pred).^2)
 
 
 """
-    SVM()
+    SVM(X,y,C)
 Support Vector Machines
 Description.
 """
@@ -277,8 +289,11 @@ y = rand((-1,1), n)
 C = 40
 # Solve
 (β_0, β, ξ) = SVM(X,y,C)
-# Report error
+
+# Prediction function
 SVM_classifier(x,β_0,β) = sign(x'*β + β_0)
+
+# Report error
 misclass = 0
 for i = 1:n
     if SVM_classifier(X[i,:], β_0, β) != y[i]
@@ -342,6 +357,7 @@ k_poly = argmax(α_poly)
 b_rbf = y[k_rbf] - sum( α_rbf[i]*y[i]*K_rbf(X[k_rbf,:],X[i,:]) for i = 1:n)
 b_rbf = y[k_poly] - sum( α_poly[i]*y[i]*K_poly(X[k_poly,:],X[i,:]) for i = 1:n)
 
+# Prediction function
 kernel_SVM_classifier(x,K,X,α,b) = sign(sum( α[i]*y[i]*K(x,X[i,:]) for i = 1:size(X,1)) + b)
 
 misclass_rbf = 0
@@ -357,7 +373,54 @@ end
 println("RBF kernel: $misclass_rbf out of $n training observations misclassified.")
 println("Polynomail kernel: $misclass_poly out of $n training observations misclassified.")
 
+"""
+    bagging()
+Description.
+"""
+function bagging(X,y; B=10)
 
+end
+
+
+"""
+    bootstrapper(X,y)
+Description.
+"""
+function bootstrapper(X,y; B=10)
+    n,p = size(X)
+    b_samples = []
+    ind_used = []
+    ind_not_used = []
+    for _ = 1:B
+        X_b = zeros(n,p)
+        y_b = zeros(n)
+        ind_used_b = Set([])
+        for i=1:n
+            ind = rand(1:n)
+            X_b[i,:] = X[ind,:]
+            y_b[i] = y[ind]
+            push!(ind_used_b, ind)
+        end
+        ind_all = Set(1:n)
+        ind_not_used_b = setdiff(ind_all,ind_used_b)
+        push!(b_samples, (X_b,y_b))
+        push!(ind_used, ind_used_b)
+        push!(ind_not_used, ind_not_used_b)
+    end
+
+    return b_samples, ind_used, ind_not_used
+end
+
+X = [ones(5)'; 2*ones(5)'; 3*ones(5)'; 4*ones(5)']
+y = [1; 2; 3; 4]
+b_samples, ind_used, ind_not_used = bootstrapper(X,y)
+X_b, y_b = b_samples[1]
+X_b
+y_b
+ind_used[1]
+ind_not_used[1]
+
+#######################################################################################
 # Create custom data for binary classification with: RBF, linear, quadratic
 
 # RBF Boundary Data
