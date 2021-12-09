@@ -20,9 +20,9 @@ Bagging procedure?
 Jonathan:
 Done - Gradient Descent
 Done - Newton's Method
+Done - Nonnegative Matrix Factorization
 Naive Bayes Classifier
 Linear Discriminant Analysis
-Done - Nonnegative Matrix Factorization
 Kernel PCA
 Multidimensional Scaling
 tSNE
