@@ -420,6 +420,135 @@ y_b
 ind_used[1]
 ind_not_used[1]
 
+
+"""
+    train_neural_network()
+Description. For classification.
+"""
+function train_neural_network(X,y,num_hidden_layers,size_hidden_layers; activation="sigmoid",problem_type="regression",num_classes=1,num_epochs=1)
+    
+    if activation == "sigmoid"
+        σ(z) = 1 / (1+exp(-z))
+        Dσ(z) = σ(z)^2 * exp(-z)    # gradient with respect to z
+    elseif activation == "ReLU"
+        σ(z) = max(z,0)
+        Dσ(z) = begin
+            if z >= 0
+                return 1
+            else
+                return 0
+            end
+        end
+    end
+
+    if problem_type == "classification"
+        y_indicator = []
+        for i = 1:length(y)
+            push!(y_indicator, map(k -> y[i] == k, 1:num_classes))
+        end
+
+        L(y_indicator,a_L_prob) = -sum(y_indicator[k] * log(a_L_prob[k]) for k=1:num_classes)
+        DL(y_indicator,a_L_prob) = [-y_indicator[k] / a_L_prob[k] for k=1:num_classes]
+
+        # lo(x_L) = sum( exp(x_L[i]) for i = 1:length(x_L) )
+        # hi(x) = exp(x)
+        # Dlo = 
+        # Dhi(x) = hi(x)
+        # f(a_L_i, a_L) = exp(a_L_i) / sum( exp(a_L[i]) for i = 1:length(a_L) )
+        # Df(a_L_i, a_l) = 
+    elseif problem_type == "regression"
+        L(y,a_L) = norm(y-a_L)^2
+        DL(y,a_L) = 2*(a_L-y)
+        # f(z) = z
+    end
+    
+    L = num_hidden_layers + 2
+    z = map(n -> zeros(size_hidden_layers), 1:num_hidden_layers)
+    z = hcat(zeros(size(X,1)), z, zeros(num_classes))
+    a = map(n -> zeros(size_hidden_layers), 1:num_hidden_layers)
+    a = hcat(zeros(size(X,1)), z, zeros(num_classes))
+    # Create weight parameters
+    W = [[I(size(X,1))]]   # store identity for sake
+    push!(W, ones(size_hidden_layers, size(X,1)))   # W[2] = weights from layer 1 to layer 2
+    for _ = 1:(num_hidden_layers-1)
+        push!(W, ones(size_hidden_layers, size_hidden_layers))
+    end
+    push!(W, ones(num_classes, size_hidden_layers))
+    # Create biases
+    b = [[zeros(size(X,1))]]
+    for _ = 1:num_hidden_layers
+        push!(b, zeros(size_hidden_layers))
+    end
+    push!(b, zeros(num_classes))
+
+    δ = [[zeros(size(X,1))]]
+    for _ = 1:num_hidden_layers
+        push!(δ, zeros(size_hidden_layers))
+    end
+    push!(δ, zeros(num_classes))
+    
+    for _ = 1:num_epochs
+        for i = 1:size(X,1)
+            z[1] = X[i,:]   # identical transformation
+            a[1] = σ.(z[1])
+            for l = 2:(L)
+                z[l] = W[l]*a[l-1] + b[l]
+                a[l] = g.(z[l])
+            end
+            # z[L] = W[L]*a[L-1] + b[L]
+            # for j = 1:length(a[L])
+            #     a[L][i] = f(a[L][i],a[L])
+            # end
+            
+            if problem_type == "classification"
+                δ[L] = DL(y_indicator, a_L) .* Dσ(z[L])
+            elseif problem_type == "regression"
+                δ[L] = DL(y, a_L) .* Dσ(z[L])
+            end
+
+            for l = (L-1):-1:2
+                δ[l] = W[l+1]' * δ[l+1] .* Dσ(z[l])
+            end
+
+            for l = 2:L
+                W[l] = W[l] - δ[l] * a[l+1]'
+                b[l] = b[l] - δ[l]
+            end
+        end
+    end
+
+    function f_predictor(x)
+        z[1] = x   # identical transformation
+        a[1] = σ.(z[1])
+        for l = 2:(L)
+            z[l] = W[l]*a[l-1] + b[l]
+            a[l] = g.(z[l])
+        end
+        if problem_type == "classification"
+            return argmax(a[L])
+        elseif problem_type == "regression"
+            return a[L][1]   # if regression, final layer has 1 output
+        end
+    end
+
+    if problem_type == "classification"
+        # Compute misclassication (not necessarily loss)
+        for i = 1:size(X,1)
+            misclass = 0
+            if f_predictor(X[i,:]) != y[i]
+                misclass += 1
+            end
+        end
+        println("$misclass of $(size(X,1)) training images misclassied.")
+    elseif problem_type == "regression"
+        ave_loss = Statistics.mean(L(y,f_predictor))
+        println("Average loss $ave_loss out of $(size(X,1)) training images.")
+    end
+
+    return f_predictor
+end
+
+
 #######################################################################################
 # Create custom data for binary classification with: RBF, linear, quadratic
 
