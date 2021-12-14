@@ -96,7 +96,6 @@ y = vcat(y,ones(10),-ones(10));
 #######################################################################################
 
 # Classication
-
 # load partial training set
 tr_size = 5000
 train_x, train_y = MNIST.traindata(1:tr_size)
@@ -118,7 +117,6 @@ y_test = test_y;
 
 
 # Regression
-
 X_all = transpose(BostonHousing.features())
 X = X_all[1:450,:]
 X_test = X_all[451:end,:]
