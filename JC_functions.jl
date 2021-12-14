@@ -182,6 +182,7 @@ function k_means(X, k; LIMIT = 500)
     centroids_changed = true
     while counter < LIMIT && centroids_changed
         centroids_changed = false
+        
         # update centroids
         for ctrd in 1:k
             idxs = []
